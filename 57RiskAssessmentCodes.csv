@@ -1,0 +1,4 @@
+Id,RiskAssessmentLevel,RiskAssessmentLevelDesc
+1,High Risk,"All three core factors are present (Desire, Intent, Capability) Risk is high despite absence or presence of buffers"
+2,Moderate to High Risk,Desire paired with Intent or Capability. Absence or presence of buffers may increase or reduce risk.
+3,Moderate to Low Risk,"Any factor present alone, absence or presence of buffers may increase or reduce risk."
