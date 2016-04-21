@@ -1,36 +1,36 @@
 Id,CallOutcome
-1,Substance Use/Addiction
+1,Substance Use  Addiction
 2,Loneliness
-3,Suicidal Crisis
-4,Suicidal thoughts
-5,Needed info on suicide
-6,Mental health/illness
-7,Post-Disaster Needs
-8,Economic Problems
-9,Homelessness Issues
-10,Physical Illness
-11,Abuse/Violence
-12,Relationship Problems
-13,Sexual Orientation Issues
-14,Family Problem (parent/child)
-15,Death of family member/friend
+3,Suicidal  Crisis
+4,Suicidal  thoughts
+5,Needed info  on suicide
+6,Mental health  illness
+7,Post-Disaster  Needs
+8,Economic  Problems
+9,Homelessness  Issues
+10,Physical  Illness
+11,Abuse  Violence
+12,Relationship  Problems
+13,Sexual Orientation  Issues
+14,Family Problem   (parent/child)
+15,Death of family   member/friend
 16,Other
-17,Complaint about VA
-18,Homicidal Thoughts
-19,Homicidal Crisis
-20,Legal Issue
-21,Chronic Pain
+17,Complaint  about VA
+18,Homicidal  Thoughts
+19,Homicidal  Crisis
+20,Legal  Issue
+21,Chronic  Pain
 22,MST
 23,Joblessness
 24,TBI
-25,Anger Issues
-26,Employment Issues
-27,Needed Information
-28,Medical Issues
-29,Benefits/Payment Concern
-30,PTSD Symptoms
-31,Medication Refill/Issue
-32,Sleep Issues
-33,3rd Party Concerns
-34,Concern With Overall VA Care
-35,Sexual Abuse/Assault (Non-MST)
+25,Anger  Issues
+26,Employment  Issues
+27,Needed  Information
+28,Medical  Issues
+29,Benefits/Payment  Concern
+30,PTSD  Symptoms
+31,Medication  Refill/Issue
+32,Sleep  Issues
+33,3rd Party  Concerns
+34,Concern With  Overall VA Care
+35,Sexual Abuse  Assault (Non-MST)
