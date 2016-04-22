@@ -1,0 +1,265 @@
+---
+title: "Veteran Crisis Line 2014"
+author: "Mihir Iyer"
+date: "April 14, 2016"
+output: 
+  html_document:
+    fig_height: 7
+    fig_width: 9
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+---
+
+# Introduction to the VA Crisis Line data
+
+On April 14th 2016, VA published a [collection of record-level and aggregate Veterans Crisis Line call data sets](http://catalog.data.gov/dataset/veterans-crisis-line-call-record-level-data) on the data.gov webiste. This data was made available through Freedom of Information Act (FOIA) Request 15-00242-F appeal. This guide serves to help the community use and explore the data by showing the steps involved in accessing and using the Veterans Crisis Line Calls FY2014 Record-Level Data file with R and RMarkdown. In this guide you will see how to read the file from the data.gov website and prepare the data for analysis. There are also some sample visualizations to help explore and understand the data. 
+
+This dataset is also accompanied by a [data dictionary that accompanies each data set](https://raw.githubusercontent.com/vacobrydsk/VeteransCrisisLineDataDictionary/master/VeteransCrisisLineDataDictionary.xlsx), the link for this is listed in the metadata section on the data.gov page of the file. The datat dictionary is important because it provides a way to decode the values the variables assume. From the dictionary we can also see which fields are machine generated versus populated by the VA Crisis Line responder. It is important to note that the crisis line data is partially redacted where some of the fields have been coded with a value of "b6". There are also entire observations that have been redacted and for some observations certain variable values as well. 
+
+# Reading the data
+
+The Veterans Crisis Line Calls FY2014 Record-Level data set is provided as a zip file so once downloaded the file will need to be unzipped. Once unzipped, the data file in json format can be accessed and read with the following code:
+
+```{r dataload}
+knitr::opts_chunk$set(cache = TRUE)
+#load jsonlite library to read json file
+library(jsonlite)
+#read the file and assign to crisis
+crisis <- fromJSON("~/Rprojects/Crisis/VeteransCrisisLineFY14FOIA1500242.json")
+
+```
+
+Once the data has been loaded, it's useful to run the `nrow` and `str` functions to see the number of observations, variables (columns) and data types. From the `nrow` function we can see that there are **`r format(nrow(crisis), big.mark=",")`** observations in this data set. From the output of the `str` function we can see that there are `r length(crisis)` variables all of which have been read as chr (character) values [(See appendix A for details)](#appendA). The `str` output also shows the variables available and those which are populated with "b6", implying that the field has been redacted. From this output we can see that only 14 variables are exposed.
+
+```{r str_output, echo=FALSE, eval=FALSE }
+str(crisis)
+```
+
+
+# Assigning data types
+
+Again from the `str` output we can also see that there some date, time, categorical and redacted variables. Now that we know which variables can be used (date, time, and categorical) the next step is to select the non-redacted variables and assign them to their appropriate data type. Assigning the categorical variables is fairly straight forward since we can use the `factor` data type and then using the data dictionary we can set the level option to the coded value and then the label option is set to the text definitions of the code. Then for the one time field, CALL_DURATION formatted as H:M:S, we can use the `lubridate` package to convert to seconds and then  minutes. This is in effect renders the field as a `numeric` data type. The fields CallStartYYYY, CallEndYYYY, DateClosedYYYY, and TwoWeekFollowUpDateYYYY are a little unique because they are date-time fields but since only the year is exposed we can set these to the factor data type as well. The last field TwoWeekFollowUpCount contains integer values and "b6" so for the lack of a definition this fields is left as a `character` data type. Below are the results of assigning data types, [the detailed steps are presented in Appendix B](#appendB):
+
+```{r dataprep, echo=FALSE, message=FALSE, warning=FALSE}
+#select NON-REDACTED variables
+crisis.nred <- crisis[, c(2, 5,6,7,8,9, 11, 17,37,47,49,50,61,63,64,65,68)]
+
+
+#ACtionTaken as factor
+action<- read.csv("https://raw.githubusercontent.com/mihiriyer/crisis/master/60ActionTakenCodes.csv", stringsAsFactors=FALSE)
+crisis.nred$ActionTaken <- factor(crisis.nred$ActionTaken, levels=c(1:11, "b6"), labels=c(action[,2], "b6-redacted"))
+rm(action)
+
+#CALL_DURATION as times
+#load lubridate library to convert CALL_Duration field into seconds and then miniutes
+library(lubridate)
+crisis.nred$CALL_DURATION <- period_to_seconds(hms(crisis.nred$CALL_DURATION))
+crisis.nred$CALL_DURATION <- crisis.nred$CALL_DURATION/60
+
+
+# the remaining variable will be set as factor as they are mostly categorical variables
+#CallEndYYYY
+crisis.nred$CallEndYYYY <- factor(crisis.nred$CallEndYYYY, levels=c("2013", "2014", "b6"), labels=c("2013", "2014", "b6-redacted"))
+
+#CallOutcome
+outcome <- read.csv(file="https://raw.githubusercontent.com/mihiriyer/crisis/master/59CallOutcomeCodes.csv", stringsAsFactors = FALSE)
+crisis.nred$CallOutcome <- factor(crisis.nred$CallOutcome, levels=c(1:35, "b6"), labels=c(outcome[,2], "b6-redacted"))
+rm(outcome)
+
+#CallSource
+callsource <- read.csv(file="https://raw.githubusercontent.com/mihiriyer/crisis/master/7CallSourceCodes.csv", stringsAsFactors = FALSE)
+crisis.nred$CallSource <- factor(crisis.nred$CallSource, levels=c(1:23, "b6"), labels=c(callsource[,2], "b6-redacted"))
+rm(callsource)
+
+# CAllStartYYYY
+crisis.nred$CallStartYYYY <- factor(crisis.nred$CallStartYYYY, levels=c("2013", "2014", "b6"), labels=c("2013", "2014", "b6-redacted"))
+
+#CheckedCapriInfo
+crisis.nred$CheckedCapriInfo <- factor(crisis.nred$CheckedCapriInfo, levels=c("Yes", "Veteran Refused", "Did not ask", "b6"), labels=c("Yes", "Veteran Refused", "Did not ask", "b6-redacted"))
+
+# DateClosedYYYY
+crisis.nred$DateClosedYYYY <- factor(crisis.nred$DateClosedYYYY, levels=c(". ", "2013", "2014", "b6"), labels=c("Empty", "2013", "2014", "b6-redacted"))
+
+# IsReferral 
+crisis.nred$IsReferral <- factor(crisis.nred$IsReferral, levels=c("0", "1", "b6"), labels=c("No", "Yes", "b6-redacted"))
+
+
+# RefferalType
+crisis.nred$ReferralType[crisis.nred$ReferralType == ""] <- "Empty"
+crisis.nred$ReferralType <- factor(crisis.nred$ReferralType, levels=c("Emergent","Empty","Info Only","Routine","Urgent"))
+
+
+# RiskAssessmentID
+riskassess <- read.csv(file="https://raw.githubusercontent.com/mihiriyer/crisis/master/57RiskAssessmentCodes.csv", stringsAsFactors = FALSE)
+crisis.nred$RiskAssessmentId <- factor(crisis.nred$RiskAssessmentId, levels=c(1:3, "b6"), labels=c(riskassess[,2], "b6"))
+rm(riskassess)
+
+# SatisfactionWithCall
+crisis.nred$SatisfactionWithCall <- factor(crisis.nred$SatisfactionWithCall, levels=c("TRUE", "FALSE", "unsure", "b6"), labels=c("True", "False", "Unsure", "b6-redacted"))
+
+# TwoWeekFollowUp
+crisis.nred$TwoWeekFollowUp <- factor(crisis.nred$TwoWeekFollowUp, levels=c("0", "1", "b6"), labels=c("No", "Yes", "b6-redacted"))
+
+
+# TwoWeekFollowUpClosed
+crisis.nred$TwoWeekFollowUpClosed <- factor(crisis.nred$TwoWeekFollowUpClosed, levels=c("0", "1", "b6"), labels=c("No", "Yes", "b6-redacted"))
+
+# TwoWeekFollowUpDateYYYY
+crisis.nred$TwoWeekFollowUpDateYYYY <- factor(crisis.nred$TwoWeekFollowUpDateYYYY, levels=c(". ", "2013", "2014", "b6"), labels=c("Empty", "2013", "2014", "b6-redacted"))
+
+# isClosed
+crisis.nred$isClosed <- factor(crisis.nred$isClosed, levels=c("0", "1", "b6"), labels=c("No", "Yes", "b6-redacted"))
+
+```
+
+# Sample Visualizations
+
+Now that the relevant (data containing) variables have been extracted and assigned to the appropriate data type, we can start exploring the data. We know that we have numeric variable (CALL_DURATION), one undefined character variable (TwoWeekFollowUpCount), and the remaining are categorical variables. A good first step for the CALL_DURATION would be to view the distribution by using a histogram or boxplot. A boxplot of CALL_DURATION with any of the categorical variables would show its distribution, for example, by the different types of ActionTaken or Referral Types. The categorical variables can visualized with bar plot to see the counts or totals by the various categories of the variable. Cross-tablulations of any pair of categorical variables may make patterns visible. 
+
+## Distribution of Call Duration by Action Taken
+
+Running the  `summary` command is a good first step towards explorling the CALL_DURATION (in minutes) field, since it provides a six-number summary and the number of missing values. The max and min values can help inform the axis limits.
+
+```{r summ_call_dur, echo=FALSE, eval=TRUE, tidy=TRUE}
+
+summary(crisis.nred$CALL_DURATION)
+
+```
+
+From the above we can see that 75% of the calls were within 50 minutes and also that 25% of the calls are between 50 and 1,439 minutes (24 hours is 1440 minutes). These statistics imply that the distribution exhibits a positive (right) skew so it will be helpful to narrow the range of the CALL_DURATION field because this will ensure that the boxplots are legible. By selecting the calls that were less than 500 minutes only `r length(crisis.nred$CALL) - length(crisis.nred$CALL_DURATION[crisis.nred$CALL_DURATION <500])` calls are excluded.  
+
+```{r call_histp, echo=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(plotly)
+
+#select calls that were less than 500 minutes
+crisis.nred <- dplyr::filter(crisis.nred, CALL_DURATION < 500)
+
+#drop empty levels, add line breaks to ActionTaken because some of them are really long for an axis label; 
+crisis.nred$ActionTaken <- droplevels(crisis.nred$ActionTaken)
+#!!!CAREFUL - had to do some hand jamming here to get the text to fit right on the axis, i enterted double spaces where i wanted the breaks in the 60ActionTakenCodes.csv files. sorry buckeroo :( 
+levels(crisis.nred$ActionTaken) <- gsub("  ", "<br>", levels(crisis.nred$ActionTaken))
+
+mycols <- RColorBrewer::brewer.pal(11, "Set3")
+
+#set plotly margins
+m = list(
+  l = 175,
+  r = 50,
+  b = 60,
+  t = 25,
+  pad = 4
+)
+#set font sizes
+f1 <- list(size=14)
+f2 <- list(size=10)
+
+plot_ly(x=crisis.nred$CALL_DURATION, 
+        color=crisis.nred$ActionTaken,
+        colors=mycols, 
+        type="box") %>%
+  layout(showlegend=F,
+         autosize=T,
+         # width=700,
+         # height=600, 
+         margin=m, 
+         xaxis=list(title="Duration of call (minutes)", titlefont=f1, tickfont=f2),
+         yaxis=list(title="Crisis Line Responder's Action", titlefont=f1, tickfont=f2)
+         )
+
+
+
+```
+
+## Call Outcome and Satisifaction With Call
+
+For the next example we compare CallOutcome and SatisfactionWithCall so that we can see if satisfaction rates vary based on the outcome of the call. 
+
+```{r actout, echo=FALSE, cache=FALSE}
+
+#drop empty levels from CallOutcome and SatisfcationWithCall
+crisis.nred$CallOutcome <- droplevels((crisis.nred$CallOutcome))
+crisis.nred$SatisfactionWithCall <- droplevels((crisis.nred$SatisfactionWithCall))
+
+
+#yup, one more time had to hand-jam in breaks
+levels(crisis.nred$CallOutcome) <- gsub("  ", "<br>", levels(crisis.nred$CallOutcome))
+
+#create table of ActionTaken versus Call Outcome
+calloutsat <- table(crisis.nred$SatisfactionWithCall, crisis.nred$CallOutcome)
+
+xlabs <- row.names(calloutsat)
+plotnames <- colnames(calloutsat)
+
+#set plotly margins
+m = list(
+  l = 150,
+  r = 50,
+  b = 50,
+  t = 50,
+  pad = 4
+)
+#set font sizes
+f1 <- list(size=14)
+f2 <- list(size=10)
+
+
+subplot(
+  plot_ly(x=xlabs, y=calloutsat[,1], name=plotnames[1], type="bar", bargap=100,),
+  plot_ly(x=xlabs, y=calloutsat[,2], name=plotnames[2], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,3], name=plotnames[3], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,4], name=plotnames[4], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,5], name=plotnames[5], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,6], name=plotnames[6], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,7], name=plotnames[7], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,8], name=plotnames[8], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,9], name=plotnames[9], type="bar"),
+  plot_ly(x=xlabs, y=calloutsat[,10], name=plotnames[10], type="bar"),
+  nrows=5
+) %>% layout(showlegend=F,
+             margin=m,
+             autosize=T,
+             # width=800,
+             # height=600,
+             xaxis=list(title=""),
+             xaxis2=list(title=""),
+             xaxis3=list(title=""),
+             xaxis4=list(title=""),
+             xaxis5=list(title=""),
+             xaxis6=list(title=""),
+             xaxis7=list(title=""),
+             xaxis8=list(title=""),
+             xaxis9=list(title=""),
+             xaxis10=list(title=""),
+             yaxis=list(title=plotnames[1], range=c(0,250000)),
+             yaxis2=list(title=plotnames[2], range=c(0,250000)),
+             yaxis3=list(title=plotnames[3], range=c(0,250000)),
+             yaxis4=list(title=plotnames[4], range=c(0,250000)),
+             yaxis5=list(title=plotnames[5], range=c(0,250000)),
+             yaxis6=list(title=plotnames[6], range=c(0,250000)),
+             yaxis7=list(title=plotnames[7], range=c(0,250000)),
+             yaxis8=list(title=plotnames[8], range=c(0,250000)),
+             yaxis9=list(title=plotnames[9], range=c(0,250000)),
+             yaxis10=list(title=plotnames[10], range=c(0,250000)),
+             titlefont=f1, 
+             tickfont=f2
+)
+  
+
+
+```
+
+# Appendix A - Structure of the Crisis Line data `str` output {#appendA}
+
+```{r appendA, echo=FALSE, ref.label='str_output', tidy=TRUE}
+
+
+```
+
+# Appendix B - Data prepartion and data type assignment code {#appendB}
+
+```{r appendB, ref.label='dataprep', echo=TRUE, eval=FALSE}
+
+```
+
