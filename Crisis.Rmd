@@ -13,7 +13,7 @@ output:
 
 # Introduction to the VA Crisis Line data
 
-On April 14th 2016, VA published a [collection of record-level and aggregate Veterans Crisis Line call datasets](http://catalog.data.gov/dataset/veterans-crisis-line-call-record-level-data) on the data.gov website. This data was made available through a Freedom of Information Act (FOIA) request (appeal 15-00242-F). This guide serves to help the data analysis community explore the data by showing the steps involved in accessing, preparing and using the Veterans Crisis Line Calls FY2014 Record-Level data file with R and R Markdown. In this guide you will see how to read the file from the data.gov website and prepare the data for analysis. There are also three sample visualizations to help explore and understand the data. 
+The Open Data Initiative was established in 2013 by the Office of Managment and Budget through [policy memorandum M-13-13](https://www.whitehouse.gov/sites/default/files/omb/memoranda/2013/m-13-13.pdf). In support of this effort, on April 14th 2016, VA published a [collection of record-level and aggregate Veterans Crisis Line call datasets](http://catalog.data.gov/dataset/veterans-crisis-line-call-record-level-data) on the data.gov website. This data was made available through a Freedom of Information Act (FOIA) request (appeal 15-00242-F). This guide serves to help the data analysis community explore the data by showing the steps involved in accessing, preparing and using the Veterans Crisis Line Calls FY2014 Record-Level data file with R and R Markdown. In this guide you will see how to read the file from the data.gov website and prepare the data for analysis. There are also three sample visualizations to help explore and understand the data. 
 
 This dataset is also accompanied by a [data dictionary](https://raw.githubusercontent.com/vacobrydsk/VeteransCrisisLineDataDictionary/master/VeteransCrisisLineDataDictionary.xlsx), the link for this is listed in the metadata section on the data.gov page of the file. The data dictionary is important because it provides a way to decode the values the variables assume. From the dictionary we can also see which variables are machine generated versus populated by the VA Crisis Line responder. It is important to note that the crisis line data is partially redacted where some of the variables have been coded with a value of "b6". There are also entire observations that have been redacted and for some observations certain variable values as well. 
 
@@ -135,7 +135,6 @@ crisis.nred$isClosed <- factor(crisis.nred$isClosed, levels=c("0", "1", "b6"), l
 str(crisis.nred, strict.width="cut")
 ```
 
-
 # Sample Visualizations
 
 Now that the relevant (data containing) variables have been extracted and assigned to the appropriate data type, we can start exploring the data. We know that we have one numeric variable (CALL_DURATION), one undefined character variable (TwoWeekFollowUpCount), and the remaining 15 variables are categorical. A good first step for the CALL_DURATION would be to view the distribution by using a histogram or box-plot. A box-plot of CALL_DURATION with any of the categorical variables would show its distribution, for example, by the different types of ActionTaken or Referral Types. The categorical variables can visualized with bar plot to see the counts or totals by the various categories of the variable.
@@ -256,6 +255,27 @@ bp2
 
 ```
 
+# Resources
+
+As mentioned earlier this guide was created using R and R Markdown to ensure full reproducibility and also to allow access to this data set using free open source tools. The raw R Markdown document along with some supporting files are [avaialable on GitHub](https://github.com/mihiriyer/crisis). As for the raw data, it is accessed directly from the data.gov website and so it is not posted on GitHub. In order to successfully execute the R Markdown document you will need ensure the appropriate R packages are installed. 
+
+**GitHub Repository: **
+
+https://github.com/mihiriyer/crisis 
+
+**Required R Packages: **
+
+1. jsonlite - to read json
+2. ggplot2 - to create bar graphs
+3. lubridate - to manipulate date-time fields
+4. RColorBrewer - for beautiful color schemes
+4. plotly - to create the interactive box plot
+
+**Guide in html:**
+
+http://rpubs.com/mihiriyer/crisis
+
+Good Luck! 
 
 # Appendix A - Structure of the Crisis Line data `str` output {#appendA}
 
