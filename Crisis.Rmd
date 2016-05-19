@@ -13,40 +13,61 @@ output:
 
 # Introduction to the VA Crisis Line data
 
-The Open Data Initiative was established in 2013 by the Office of Managment and Budget through [policy memorandum M-13-13](https://www.whitehouse.gov/sites/default/files/omb/memoranda/2013/m-13-13.pdf). In support of this effort, on April 14th 2016, VA published a [collection of record-level and aggregate Veterans Crisis Line call datasets](http://catalog.data.gov/dataset/veterans-crisis-line-call-record-level-data) on the data.gov website. This data was made available through a Freedom of Information Act (FOIA) request (appeal 15-00242-F). This guide serves to help the data analysis community explore the data by showing the steps involved in accessing, preparing and using the Veterans Crisis Line Calls FY2014 Record-Level data file with R and R Markdown. In this guide you will see how to read the file from the data.gov website and prepare the data for analysis. There are also three sample visualizations to help explore and understand the data. 
+The Open Data Initiative was established in 2013 by the Office of Management and Budget through [policy memorandum M-13-13](https://www.whitehouse.gov/sites/default/files/omb/memoranda/2013/m-13-13.pdf). In support of this effort, on April 14th 2016, VA published a [collection of record-level and aggregate Veterans Crisis Line call datasets](http://catalog.data.gov/dataset/veterans-crisis-line-call-record-level-data) on the data.gov website. This data was made available through a Freedom of Information Act (FOIA) request (appeal 15-00242-F). This guide serves to help the data analysis community explore the data by showing the steps involved in accessing, preparing and using the Veterans Crisis Line Calls FY2014 Record-Level data file with R and R Markdown. In this guide you will see how to read the file from the data.gov website and prepare the data for analysis. There are also three sample visualizations to help explore and understand the data. 
 
 This dataset is also accompanied by a [data dictionary](https://raw.githubusercontent.com/vacobrydsk/VeteransCrisisLineDataDictionary/master/VeteransCrisisLineDataDictionary.xlsx), the link for this is listed in the metadata section on the data.gov page of the file. The data dictionary is important because it provides a way to decode the values the variables assume. From the dictionary we can also see which variables are machine generated versus populated by the VA Crisis Line responder. It is important to note that the crisis line data is partially redacted where some of the variables have been coded with a value of "b6". There are also entire observations that have been redacted and for some observations certain variable values as well. 
+
+# Required Resources
+
+As mentioned earlier this guide was created using R and R Markdown to ensure full reproducibility and also to allow access to this data set using free open source tools. The raw R Markdown document along with some supporting files are [available on GitHub](https://github.com/mihiriyer/crisis). As for the raw data, it is accessed directly from the data.gov website and so it is not posted on GitHub. In order to successfully execute the R Markdown document you will need ensure the appropriate R packages are installed. 
+
+**GitHub Repository: **
+
+https://github.com/mihiriyer/crisis 
+
+**Required R Packages: **
+
+1. jsonlite - to read json
+2. ggplot2 - to create bar graphs
+3. lubridate - to manipulate date-time fields
+4. RColorBrewer - for beautiful color schemes
+4. plotly - to create the interactive box plot
+
+**Guide in html:**
+
+http://rpubs.com/mihiriyer/crisis
 
 # Reading the data
 
 The Veterans Crisis Line Calls FY2014 Record-Level dataset is provided as a zip file so once downloaded the file will need to be unzipped and read. The zip file can be downloaded, unzipped and read with the following code:
 
-```{r dataload.opt1}
+```{r dataload.opt1, eval=FALSE, echo=FALSE}
+# knitr::opts_chunk$set(cache = TRUE)
+# #load jsonlite library to read json file
+# library(jsonlite)
+# #download, unzip, and read the file and assign to crisis
+# temp <- tempfile()
+# download.file("https://raw.githubusercontent.com/vacobrydsk/VHA-Files/master/VeteransCrisisLineFY14FOIA1500242.zip",temp)
+# crisis <- fromJSON(unz(temp, "VeteransCrisisLineFY14FOIA1500242.json"))
+# unlink(temp)
+# rm(temp)
+
+```
+
+```{r dataload.opt2, eval=TRUE, echo=FALSE}
+#the dataload.opt1 may be cubmersome to use if you choose to build on/off this document because each time you knit the file will be downloaded, unzipped, etc. So it may be easier to download the file manually and then load the file locally with the code below. You will need to un-comment the lines below, and change knitr option eval=TRUE
+
 knitr::opts_chunk$set(cache = TRUE, error = FALSE)
 #load jsonlite library to read json file
 library(jsonlite)
-#download, unzip, and read the file and assign to crisis
-temp <- tempfile()
-download.file("https://raw.githubusercontent.com/vacobrydsk/VHA-Files/master/VeteransCrisisLineFY14FOIA1500242.zip",temp)
-crisis <- fromJSON(unz(temp, "VeteransCrisisLineFY14FOIA1500242.json"))
-unlink(temp)
-rm(temp)
-
-```
-
-```{r dataload.opt2, eval=FALSE, echo=FALSE}
-#the dataload.opt1 may be cubmersome to use if you choose to build on/off this document because each time you knit the file will be downloaded, unzipped, etc. So it may be easier to download the file manually and then load the file locally with the code below. You will need to un-comment the lines below, and change knitr option eval=TRUE
-
-# knitr::opts_chunk$set(cache = TRUE, error = FALSE)
-# #load jsonlite library to read json file
-# library(jsonlite)
-# crisis <- fromJSON("~/Rprojects/Crisis/VeteransCrisisLineFY14FOIA1500242.json")
+crisis <- fromJSON("~/Rprojects/Crisis/VeteransCrisisLineFY14FOIA1500242.json")
 
 
 ```
 
 
-Once the data has been loaded, it's useful to run the `nrow`, `length` and `str` functions to see the number of observations, variables (columns) and data types. From the `nrow` function we can see that there are **`r format(nrow(crisis), big.mark=",")`** observations in this dataset. From the output of the `length` function we can see that there are **`r length(crisis)`** variables. From the `str` output we see that all of variables/fields have been read as chr (character) values [(See appendix A for details)](#appendA). From this output, all the variables which are populated with "b6" are visible, this implies that the variable has been redacted. From this output we can see that only 14 variables are exposed.
+Once the data has been loaded, it's useful to run the `nrow`, `length` and `str` functions to see the number of observations, variables (columns) and data types. From the `nrow` function we can see that there are **`r format(nrow(crisis), big.mark=",")`** observations in this dataset. The output of the `length` function shows that there are **`r length(crisis)`** variables. Then the `str` output shows all of variables/fields that have been read as chr (character) values [(See appendix A for details)](#appendA). From this output, all the variables which are populated with "b6" are visible, this implies that the variable has been redacted. From this output we can see that only 14 variables are exposed.
+
 
 ```{r str_output, echo=FALSE, eval=FALSE }
 str(crisis)
@@ -55,7 +76,7 @@ str(crisis)
 
 # Assigning data types
 
-Again from the `str` output we can see that there some date, time, categorical and redacted variables. Now that we know which variables can be used (date, time, and categorical) the next step is to select the non-redacted variables and assign them to their appropriate data type. Assigning the categorical variables is fairly straight forward since we can use the `factor` data type and then using the data dictionary we can set the level option to the coded values and then the label option is set to the text definitions of the code. Then for the one time variable, CALL_DURATION formatted as H:M:S, we can use the `lubridate` package to convert to seconds and then minutes. This is in effect renders the variable as a `numeric` data type. The variables CallStartYYYY, CallEndYYYY, DateClosedYYYY, and TwoWeekFollowUpDateYYYY are a little unique because they are date-time variables but since only the year is exposed we can set these to the factor data type as well. The last variable TwoWeekFollowUpCount contains integer values and "b6". Since the dictionary doesn't define the values the variable takes on, this variables is left as a `character` data type. Below isthe resultant dataset after removing the redacted variables and assigning data types, [the detailed steps are presented in Appendix B](#appendB):
+Again from the `str` output we can see that there some date, time, categorical and redacted variables. Now that we know which variables can be used (date, time, and categorical) the next step is to select the non-redacted variables and assign them to their appropriate data type. Assigning the categorical variables is fairly straight forward since we can use the `factor` data type and then using the data dictionary we can set the level option to the coded values and then the label option is set to the text definitions of the code. Then for the one time variable, CALL_DURATION formatted as H:M:S, we can use the `lubridate` package to convert to seconds and then minutes. This is in effect renders the variable as a `numeric` data type. The variables CallStartYYYY, CallEndYYYY, DateClosedYYYY, and TwoWeekFollowUpDateYYYY are a little unique because they are date-time variables but since only the year is exposed we can set these to the factor data type as well. The last variable TwoWeekFollowUpCount contains integer values and "b6". Since the dictionary doesn't define the values the variable takes on, this variables is left as a `character` data type. Below is the resultant dataset after removing the redacted variables and assigning data types, [the detailed steps are presented in Appendix B](#appendB):
 
 ```{r dataprep, echo=FALSE, message=FALSE, warning=FALSE}
 #select NON-REDACTED variables
@@ -255,27 +276,6 @@ bp2
 
 ```
 
-# Resources
-
-As mentioned earlier this guide was created using R and R Markdown to ensure full reproducibility and also to allow access to this data set using free open source tools. The raw R Markdown document along with some supporting files are [avaialable on GitHub](https://github.com/mihiriyer/crisis). As for the raw data, it is accessed directly from the data.gov website and so it is not posted on GitHub. In order to successfully execute the R Markdown document you will need ensure the appropriate R packages are installed. 
-
-**GitHub Repository: **
-
-https://github.com/mihiriyer/crisis 
-
-**Required R Packages: **
-
-1. jsonlite - to read json
-2. ggplot2 - to create bar graphs
-3. lubridate - to manipulate date-time fields
-4. RColorBrewer - for beautiful color schemes
-4. plotly - to create the interactive box plot
-
-**Guide in html:**
-
-http://rpubs.com/mihiriyer/crisis
-
-Good Luck! 
 
 # Appendix A - Structure of the Crisis Line data `str` output {#appendA}
 
